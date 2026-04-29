@@ -1,87 +1,14 @@
-// ═══════════════════════════════════════════════════
-// TAXONOMY
-// ═══════════════════════════════════════════════════
-const TYPES = {
-  salah:    {label:'Намаз',       icon:'🕌'},
-  dua:      {label:'Ду\'а',       icon:'🤲'},
-  dhikr:    {label:'Зикр',        icon:'📿'},
-  tasbih:   {label:'Тасбих',      icon:'✨'},
-  istigfar: {label:'Истигфар',    icon:'💧'},
-  ziarat:   {label:'Зиярат',      icon:'🌹'},
-  tilawah:  {label:'Коран',       icon:'📖'},
-  sawm:     {label:'Пост',        icon:'🌙'},
-  sadaqah:  {label:'Садака/Хумс', icon:'💚'},
-  tawassul: {label:'Тавассуль',   icon:'🕯'},
-  amal:     {label:'Амаль',       icon:'⚡'},
-};
-
-const PURPOSES = [
-  {k:'forgiveness', icon:'💧', label:'Прощение грехов'},
-  {k:'rizq',        icon:'🌿', label:'Увеличение удела'},
-  {k:'hajat',       icon:'🌟', label:'Исполнение желаний'},
-  {k:'health',      icon:'💚', label:'Здоровье (общее)'},
-  {k:'health_head', icon:'🧠', label:'Головная боль'},
-  {k:'health_eyes', icon:'👁', label:'Боли в глазах'},
-  {k:'health_teeth',icon:'🦷', label:'Зубная боль'},
-  {k:'health_heart',icon:'❤️', label:'Сердце'},
-  {k:'shifa',       icon:'🌿', label:'Исцеление (шифа)'},
-  {k:'protection',  icon:'🛡', label:'Защита'},
-  {k:'fear',        icon:'🕊', label:'Избавление от страха'},
-  {k:'anxiety',     icon:'🌊', label:'Тревога, уныние'},
-  {k:'irfan',       icon:'🌙', label:'Ирфан / духовность'},
-  {k:'iman',        icon:'⭐', label:'Укрепление имана'},
-  {k:'parents',     icon:'👨‍👩‍👦', label:'За родителей'},
-  {k:'children',    icon:'👶', label:'За детей'},
-  {k:'marriage',    icon:'💍', label:'Брак / семья'},
-  {k:'love',        icon:'💚', label:'Любовь / отношения'},
-  {k:'knowledge',   icon:'📚', label:'Знание / мудрость'},
-  {k:'rizq',        icon:'💰', label:'Избавление от долгов'},
-  {k:'tawbah',      icon:'🌅', label:'Покаяние (тауба)'},
-  {k:'barakah',     icon:'✨', label:'Бараках'},
-  {k:'deceased',    icon:'🌹', label:'За усопших'},
-  {k:'community',   icon:'🌍', label:'За умму / общину'},
-  {k:'general',     icon:'🕌', label:'Общая практика'},
-];
-// dedupe purposes
-const PURPOSES_UNIQUE = PURPOSES.filter((p,i,a) => a.findIndex(x=>x.k===p.k)===i);
-
-const FORMS = {
-  recitation: {label:'Чтение',    icon:'🗣'},
-  physical:   {label:'Действие',  icon:'🙏'},
-  combined:   {label:'Комбинир.', icon:'🔄'},
-  silent:     {label:'Мысленно',  icon:'🤫'},
-  written:    {label:'Письменно', icon:'✍️'},
-};
-
-const FREQS = {daily:'Ежедневно',weekly:'Еженедельно',monthly:'Ежемесячно',annual:'Ежегодно',once:'Однократно',streak:'Цепочка'};
-const PRIO_LABEL = {fard:'Ваджиб',sunnah:'Мустахаб',mustahabb:'Нафиля'};
-const PRIO_TAG   = {fard:'tg-fard',sunnah:'tg-sunnah',mustahabb:'tg-mustahabb'};
-const ANCHOR_LBL = {before_fajr:'До Фаджра',after_fajr:'После Фаджра',after_sunrise:'После восхода',before_dhuhr:'До Зухра',after_dhuhr:'После Зухра',before_asr:'До Аср',after_asr:'После Аср',before_maghrib:'До заката',after_maghrib:'После Магриба',before_isha:'До Иша',after_isha:'После Иша',midnight_shia:'Полночь (шиит.)',tahajjud:'Тахаджуд'};
-
-// ═══════════════════════════════════════════════════
-// PRAYER CALC (Jafari)
-// ═══════════════════════════════════════════════════
-const DEG = Math.PI/180;
-function jd(date){const Y=date.getFullYear(),M=date.getMonth()+1,D=date.getDate();let A=Math.floor(Y/100),B=0;if(Y>1582||(Y===1582&&M>10)||(Y===1582&&M===10&&D>=15))B=2-A+Math.floor(A/4);return Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+D+B-1524.5}
-function sunPos(d){const g=(357.529+0.98560028*d)%360,q=(280.459+0.98564736*d)%360,L=(q+1.915*Math.sin(g*DEG)+0.020*Math.sin(2*g*DEG))%360,e=23.439-0.00000036*d,sL=Math.sin(L*DEG),RA=Math.atan2(Math.cos(e*DEG)*sL,Math.cos(L*DEG))/DEG,decl=Math.asin(Math.sin(e*DEG)*sL)/DEG,EqT=q/15-(RA<0?RA+360:RA)/15;return{decl,EqT}}
-function ha(lat,decl,angle){const n=Math.cos(angle*DEG)-Math.sin(lat*DEG)*Math.sin(decl*DEG),d2=Math.cos(lat*DEG)*Math.cos(decl*DEG);if(Math.abs(d2)<1e-10||Math.abs(n/d2)>1)return null;return Math.acos(n/d2)/DEG}
-function asrHA(lat,decl){const tAlt=Math.atan(1/(1+Math.tan(Math.abs(lat-decl)*DEG)))/DEG;return ha(lat,decl,90-tAlt)}
-function toT(h,tz){let t=((h+tz)%24+24)%24;const hh=Math.floor(t),mm=Math.round((t-hh)*60),mf=mm===60?0:mm,hf=mm===60?hh+1:hh;return`${String(hf%24).padStart(2,'0')}:${String(mf).padStart(2,'0')}`}
-
-function calcPrayers(lat,lng,date){
-  const D=jd(date)-2451545.0,tz=date.getTimezoneOffset()/-60;
-  const{decl,EqT}=sunPos(D);
-  const noon=12-EqT-lng/15;
-  const haFajr=ha(lat,decl,90+16),haRise=ha(lat,decl,90+0.833),haAsr=asrHA(lat,decl),haMag=ha(lat,decl,90+4),haIsha=ha(lat,decl,90+14);
-  if(!haFajr||!haRise||!haAsr||!haMag||!haIsha)return null;
-  const fajrU=noon-haFajr/15,sunriseU=noon-haRise/15,dhuhrU=noon,asrU=noon+haAsr/15,magU=noon+haMag/15,ishaU=noon+haIsha/15;
-  const midU=magU+(fajrU+24-magU)/2,tahU=fajrU-(fajrU-(magU-24))/3;
-  return{fajr:toT(fajrU,tz),sunrise:toT(sunriseU,tz),dhuhr:toT(dhuhrU,tz),asr:toT(asrU,tz),maghrib:toT(magU,tz),isha:toT(ishaU,tz),midnight:toT(midU,tz),tahajjud:toT(tahU,tz)};
-}
-
-// Qibla
-const KAABA={lat:21.4225,lng:39.8262};
-function qiblaB(lat,lng){const φ1=lat*DEG,φ2=KAABA.lat*DEG,Δλ=(KAABA.lng-lng)*DEG,y=Math.sin(Δλ)*Math.cos(φ2),x=Math.cos(φ1)*Math.sin(φ2)-Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);return((Math.atan2(y,x)/DEG)+360)%360}
+import { ANCHOR_LBL, FORMS, FREQS, PRIO_LABEL, PRIO_TAG, PR_NAMES, PURPOSES_UNIQUE, TYPES } from './src/constants.js';
+import { addM, ds, hijri, nowM, t2m } from './src/date-time.js';
+import { createAuthUI } from './src/auth-ui.js';
+import { createCatalogModule } from './src/catalog.js';
+import { renderCalendar as renderCalendarModule, renderInsights as renderInsightsModule } from './src/insights.js';
+import { createNotificationService } from './src/notifications.js';
+import { calcPrayers, qiblaB } from './src/prayer-calculations.js';
+import { createSettingsModule } from './src/settings.js';
+import { DATA_VERSION, STORAGE_KEYS, storageGet, storageRemove, storageSet } from './src/storage.js';
+import { createTaskModalModule } from './src/task-modal.js';
+import { createTasbihModule } from './src/tasbih.js';
 
 // ═══════════════════════════════════════════════════
 // DATA
@@ -187,21 +114,6 @@ function syncToCloud(table, data){
   syncTimers[table] = setTimeout(() => sbSet(table, data), 1500);
 }
 
-const STORAGE_KEYS = {
-  tasks: 'mz5b_tasks',
-  completions: 'mz5b_comp',
-  settings: 'mz5b_cfg',
-  tasbih: 'mz5_tasbih',
-  session: 'mz_session',
-  dataVersion: 'mz_data_version'
-};
-const DATA_VERSION = 2;
-
-function parse(k,def){try{return JSON.parse(localStorage.getItem(k))??def}catch{return def}}
-function storageGet(k,def){return parse(k,def)}
-function storageSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn('Storage write failed',k,e)}}
-function storageRemove(k){try{localStorage.removeItem(k)}catch(e){}}
-
 function ensureStateIntegrity(){
   if(!settings || typeof settings!=='object') settings = { notifAhead:10 };
   settings.notifAhead = Number.isFinite(+settings.notifAhead) ? +settings.notifAhead : 10;
@@ -234,7 +146,6 @@ let prayers     = null;
 let editingId=null, selPrioVal='sunnah', curPage='today', filterPanelOpen=false;
 let selPurposes=new Set(), activeFilters={freq:'',type:'',purpose:'',prio:''};
 let notifTimers=[];
-let sentNotifTags = storageGet('mz5_notif_tags', {});
 
 migrateData();
 ensureStateIntegrity();
@@ -283,10 +194,6 @@ if(!tasks.length){
 // ═══════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════
-function ds(d=new Date()){return d.toISOString().slice(0,10)}
-function t2m(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m}
-function nowM(){const n=new Date();return n.getHours()*60+n.getMinutes()}
-function addM(t,m){if(!t)return'';const[h,mm]=t.split(':').map(Number);const tot=((h*60+mm+m)%1440+1440)%1440;return`${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`}
 
 function getP(){return prayers||settings.prayers||null}
 
@@ -340,8 +247,6 @@ function toggle(id){
 // ═══════════════════════════════════════════════════
 // PRAYER TIMES UI
 // ═══════════════════════════════════════════════════
-const PR_NAMES=[{k:'fajr',n:'Фаджр'},{k:'sunrise',n:'Шурук'},{k:'dhuhr',n:'Зухр'},{k:'asr',n:'Аср'},{k:'maghrib',n:'Магриб'},{k:'isha',n:'Иша'}];
-
 function refreshPrayers(){
   document.getElementById('prayers-grid-wrap').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">📍 Определяем…</div>';
   if(!navigator.geolocation){loadDefaultPrayers();return}
@@ -510,7 +415,7 @@ function renderToday(){
   preview.forEach(t=>{ html+=cardHTML(t,getSK(t)); });
 
   if(!todayShowAll && hiddenCount>0){
-    html+=`<button onclick="todayShowAll=true;renderToday()" style="width:100%;margin-top:4px;padding:12px;background:var(--n50);border:1.5px solid var(--border);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent-d)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+    html+=`<button data-action="today-show-all" style="width:100%;margin-top:4px;padding:12px;background:var(--n50);border:1.5px solid var(--border);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s">
       Показать все <span style="background:var(--n200);border-radius:20px;padding:1px 9px;font-size:12px">${hiddenCount}</span>
     </button>`;
   }
@@ -532,7 +437,7 @@ function renderToday(){
       html+=`<div class="sec-lbl sl-done" style="margin-top:16px"><div class="sec-dot"></div>Выполнено <span style="font-weight:400">${doneList.length}</span></div>`;
       doneList.forEach(t=>{html+=cardHTML(t,'done');});
     }
-    html+=`<button onclick="todayShowAll=false;renderToday()" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:1.5px solid var(--border);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:all .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">Свернуть ↑</button>`;
+    html+=`<button data-action="today-show-less" style="width:100%;margin-top:12px;padding:10px;background:transparent;border:1.5px solid var(--border);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:all .2s">Свернуть ↑</button>`;
   }
 
   document.getElementById('today-content').innerHTML=html;
@@ -573,15 +478,15 @@ function cardHTML(t,sk){
         ${t.short?`<div style="font-size:12px;color:var(--text3);margin-top:4px">${t.short}</div>`:''}
       </div>
       <div class="tc-right">${cd}
-        <div class="tc-actions" onclick="event.stopPropagation()">
-          <button class="tc-btn" onclick="editTask(${t.id})">✏️</button>
+        <div class="tc-actions">
+          <button class="tc-btn" data-action="edit-task" data-id="${t.id}">✏️</button>
         </div>
       </div>
     </div>`;
   }
 
   const cardCls=['tcard',done?'done':`pr-${t.priority}`,!done&&sk==='active'?'s-active':'',!done&&sk==='imminent'?'s-imminent':''].filter(Boolean).join(' ');
-  return`<div class="${cardCls}" onclick="toggle(${t.id})">
+  return`<div class="${cardCls}" data-action="toggle-task" data-id="${t.id}">
     <div class="tc-check">${done?'✓':''}</div>
     <div class="tc-body">
       <div class="tc-name">${t.name}${t.arabic?`<span class="tc-ar">${t.arabic}</span>`:''}</div>
@@ -597,9 +502,9 @@ function cardHTML(t,sk){
       ${t.streak?miniBar(t):''}
     </div>
     <div class="tc-right">${cd}
-      <div class="tc-actions" onclick="event.stopPropagation()">
-        <button class="tc-btn" onclick="editTask(${t.id})">✏️</button>
-        <button class="tc-btn del" onclick="deleteTask(${t.id})">🗑</button>
+      <div class="tc-actions">
+        <button class="tc-btn" data-action="edit-task" data-id="${t.id}">✏️</button>
+        <button class="tc-btn del" data-action="delete-task" data-id="${t.id}">🗑</button>
       </div>
     </div>
   </div>`;
@@ -608,7 +513,7 @@ function cardHTML(t,sk){
 function miniBar(t){
   const s=t.streak,done=s.doneDates.length,total=s.total,pct=Math.round(done/total*100),td=ds();
   const dots=Array.from({length:Math.min(total,30)},(_,i)=>{const d=new Date(s.start);d.setDate(d.getDate()+i);const dss=ds(d);return`<div class="sd ${s.doneDates.includes(dss)?'done':''} ${dss===td?'today':''}" title="${dss}"></div>`}).join('');
-  return`<div class="sbar" onclick="event.stopPropagation()"><div class="sb-head"><span class="sb-lbl">Цепочка · ${pct}%</span><span class="sb-cnt">${done}/${total} · ост. ${total-done} дн.</span></div><div class="sb-track"><div class="sb-fill" style="width:${pct}%"></div></div><div class="sb-dots">${dots}</div></div>`;
+  return`<div class="sbar"><div class="sb-head"><span class="sb-lbl">Цепочка · ${pct}%</span><span class="sb-cnt">${done}/${total} · ост. ${total-done} дн.</span></div><div class="sb-track"><div class="sb-fill" style="width:${pct}%"></div></div><div class="sb-dots">${dots}</div></div>`;
 }
 
 // ── STREAKS ──
@@ -624,7 +529,7 @@ function renderStreaks(){
     const doneTd=isDone(t);
     const dots=Array.from({length:Math.min(total,42)},(_,i)=>{const d=new Date(s.start);d.setDate(d.getDate()+i);const dss=ds(d);return`<div class="sd ${s.doneDates.includes(dss)?'done':''} ${dss===td?'today':''}" title="${dss}"></div>`}).join('');
     const tp=TYPES[t.type];
-    return`<div class="streak-hero" onclick="toggle(${t.id})">
+    return`<div class="streak-hero" data-action="toggle-task" data-id="${t.id}">
       <div class="sh-top">
         <div>
           <div class="sh-name">${t.name}${tp?` <span class="tag tg-type" style="font-size:11px">${tp.icon} ${tp.label}</span>`:''}</div>
@@ -654,13 +559,13 @@ const fState={freq:'',type:'',purpose:'',prio:''};
 
 function renderCatalogFilters(){
   // Freq chips
-  document.getElementById('freq-chips').innerHTML=[{v:'',l:'Все'},...Object.entries(FREQS).map(([v,l])=>({v,l}))].map(f=>`<button class="chip freq-chip ${fState.freq===f.v?'active':''}" onclick="setFilter('freq','${f.v}')">${f.l}</button>`).join('');
+  document.getElementById('freq-chips').innerHTML=[{v:'',l:'Все'},...Object.entries(FREQS).map(([v,l])=>({v,l}))].map(f=>`<button class="chip freq-chip ${fState.freq===f.v?'active':''}" data-action="set-filter" data-key="freq" data-value="${f.v}">${f.l}</button>`).join('');
   // Type chips
-  document.getElementById('type-chips').innerHTML=[{v:'',icon:'',label:'Все'},...Object.entries(TYPES).map(([v,t])=>({v,...t}))].map(t=>`<button class="chip type-chip ${fState.type===t.v?'active':''}" onclick="setFilter('type','${t.v}')">${t.icon?t.icon+' ':''}${t.label}</button>`).join('');
+  document.getElementById('type-chips').innerHTML=[{v:'',icon:'',label:'Все'},...Object.entries(TYPES).map(([v,t])=>({v,...t}))].map(t=>`<button class="chip type-chip ${fState.type===t.v?'active':''}" data-action="set-filter" data-key="type" data-value="${t.v}">${t.icon?t.icon+' ':''}${t.label}</button>`).join('');
   // Purpose chips
-  document.getElementById('purpose-chips').innerHTML=[{k:'',icon:'',label:'Все'},...PURPOSES_UNIQUE].map(p=>`<button class="chip purpose-chip ${fState.purpose===p.k?'active':''}" onclick="setFilter('purpose','${p.k}')">${p.icon?p.icon+' ':''}${p.label}</button>`).join('');
+  document.getElementById('purpose-chips').innerHTML=[{k:'',icon:'',label:'Все'},...PURPOSES_UNIQUE].map(p=>`<button class="chip purpose-chip ${fState.purpose===p.k?'active':''}" data-action="set-filter" data-key="purpose" data-value="${p.k}">${p.icon?p.icon+' ':''}${p.label}</button>`).join('');
   // Prio chips
-  document.getElementById('prio-chips').innerHTML=[{v:'',l:'Все'},...Object.entries(PRIO_LABEL).map(([v,l])=>({v,l}))].map(p=>`<button class="chip prio-chip ${fState.prio===p.v?'active':''}" onclick="setFilter('prio','${p.v}')">${p.l}</button>`).join('');
+  document.getElementById('prio-chips').innerHTML=[{v:'',l:'Все'},...Object.entries(PRIO_LABEL).map(([v,l])=>({v,l}))].map(p=>`<button class="chip prio-chip ${fState.prio===p.v?'active':''}" data-action="set-filter" data-key="prio" data-value="${p.v}">${p.l}</button>`).join('');
 
   // Active count
   const cnt=Object.values(fState).filter(v=>v).length;
@@ -694,7 +599,7 @@ function renderCatalog(){
 
   document.getElementById('results-info').innerHTML=`<span class="results-count">${filtered.length} ритуалов</span>`;
   const el=document.getElementById('catalog-content');
-  if(!filtered.length){el.innerHTML='<div class="empty"><span class="ei">🔍</span><p>Ничего не найдено.<br><button class="clear-all" onclick="clearAllFilters()">Сбросить фильтры</button></p></div>';return}
+  if(!filtered.length){el.innerHTML='<div class="empty"><span class="ei">🔍</span><p>Ничего не найдено.<br><button class="clear-all" data-action="clear-filters">Сбросить фильтры</button></p></div>';return}
 
   el.innerHTML=filtered.map(t=>{
     const tp=TYPES[t.type],fm=FORMS[t.form];
@@ -713,63 +618,19 @@ function renderCatalog(){
         ${purposeTags?`<div class="tc-tags" style="margin-top:4px">${purposeTags}</div>`:''}
         ${t.short?`<div style="font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5">${t.short}</div>`:''}
       </div>
-      <div class="tc-actions" style="opacity:1" onclick="event.stopPropagation()">
-        <button class="tc-btn" onclick="editTask(${t.id})">✏️</button>
-        <button class="tc-btn del" onclick="deleteTask(${t.id})">🗑</button>
+      <div class="tc-actions" style="opacity:1">
+        <button class="tc-btn" data-action="edit-task" data-id="${t.id}">✏️</button>
+        <button class="tc-btn del" data-action="delete-task" data-id="${t.id}">🗑</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function doneOnDate(iso){
-  return tasks.reduce((acc,t)=> acc + ((completions[t.id]||[]).includes(iso) ? 1 : 0), 0);
-}
-function analytics(days){
-  const out = { done:0, total:0 };
-  for(let i=0;i<days;i++){
-    const d = new Date();
-    d.setDate(d.getDate()-i);
-    const iso = ds(d);
-    out.done += doneOnDate(iso);
-    out.total += Math.max(1, tasks.length);
-  }
-  out.rate = out.total ? Math.round((out.done/out.total)*100) : 0;
-  return out;
-}
 function renderInsights(){
-  const el = document.getElementById('insights-content');
-  if(!el) return;
-  const w7 = analytics(7);
-  const w30 = analytics(30);
-  const totalDoneToday = doneOnDate(ds());
-  el.innerHTML = `<div class="ins-grid">
-    <div class="ins-card"><div class="ins-k">Сегодня</div><div class="ins-v">${totalDoneToday}</div><div class="ins-sub">выполнено задач</div></div>
-    <div class="ins-card"><div class="ins-k">7 дней</div><div class="ins-v">${w7.rate}%</div><div class="ins-sub">доля выполнения</div></div>
-    <div class="ins-card"><div class="ins-k">30 дней</div><div class="ins-v">${w30.rate}%</div><div class="ins-sub">доля выполнения</div></div>
-  </div>`;
+  renderInsightsModule({ tasks, completions, ds });
 }
 function renderCalendar(){
-  const root = document.getElementById('calendar-content');
-  if(!root) return;
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const first = new Date(y,m,1);
-  const days = new Date(y,m+1,0).getDate();
-  const startDow = (first.getDay()+6)%7;
-  const names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-  const cells = [];
-  for(let i=0;i<startDow;i++) cells.push('<div class="cal-day empty"></div>');
-  for(let d=1; d<=days; d++){
-    const dt = new Date(y,m,d);
-    const iso = ds(dt);
-    const done = doneOnDate(iso) > 0;
-    const today = iso===ds();
-    cells.push(`<div class="cal-day ${done?'done':''} ${today?'today':''}">${d}</div>`);
-  }
-  root.innerHTML = `<div class="cal-head"><strong>${now.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</strong><span style="font-size:12px;color:var(--text3)">Зеленый = есть выполнение</span></div>
-  <div class="cal-grid">${names.map(n=>`<div class="cal-dow">${n}</div>`).join('')}</div>
-  <div class="cal-grid" style="margin-top:6px">${cells.join('')}</div>`;
+  renderCalendarModule({ tasks, completions, ds });
 }
 
 // ─── Settings ─────────────────────────────────────
@@ -788,7 +649,7 @@ function saveSettings(){settings.notifAhead=+document.getElementById('notif-ahea
 
 // ─── Modal ─────────────────────────────────────────
 function buildPurposeGrid(){
-  document.getElementById('purpose-grid').innerHTML=PURPOSES_UNIQUE.map(p=>`<div class="purpose-opt" data-k="${p.k}" onclick="togglePurpose(this)"><span class="po-icon">${p.icon}</span>${p.label}</div>`).join('');
+  document.getElementById('purpose-grid').innerHTML=PURPOSES_UNIQUE.map(p=>`<div class="purpose-opt" data-k="${p.k}" data-action="toggle-purpose"><span class="po-icon">${p.icon}</span>${p.label}</div>`).join('');
 }
 
 function togglePurpose(el){el.classList.toggle('sel')}
@@ -864,50 +725,24 @@ function saveTask(){
 function deleteTask(id){if(!confirm('Удалить?'))return;tasks=tasks.filter(x=>x.id!==id);saveAll();renderAll()}
 
 // ─── Notifications ─────────────────────────────────
-async function requestNotifs(){
-  if(!('Notification'in window))return;
-  const p=await Notification.requestPermission();
-  document.getElementById('notif-bar').style.display=p==='granted'?'none':'';
-  if(p==='granted')scheduleNotifs();
-}
-function isInQuietHours(){
-  if(!settings.nightMode) return false;
-  const q = settings.quietHours || { start:'23:00', end:'05:00' };
-  const now = nowM();
-  const s = t2m(q.start || '23:00');
-  const e = t2m(q.end || '05:00');
-  if(s == null || e == null) return false;
-  return s <= e ? (now >= s && now < e) : (now >= s || now < e);
-}
-function canSendTag(tag){
-  const cooldown = Math.max(5, settings.reminderCooldownMin || 30);
-  const ts = sentNotifTags[tag] || 0;
-  return Date.now() - ts > cooldown * 60000;
-}
-function markTag(tag){
-  sentNotifTags[tag] = Date.now();
-  storageSet('mz5_notif_tags', sentNotifTags);
-}
-
-function scheduleNotifs(){
-  notifTimers.forEach(clearTimeout);notifTimers=[];
-  if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
-  const now=nowM(),ahead=settings.notifAhead||10,p=getP();
-  const maybeNotify = (title, body, tag) => {
-    if(isInQuietHours() || !canSendTag(tag)) return;
-    markTag(tag);
-    new Notification(title,{ body, tag });
-  };
-  if(p)[{n:'Фаджр',k:'fajr'},{n:'Зухр',k:'dhuhr'},{n:'Аср',k:'asr'},{n:'Магриб',k:'maghrib'},{n:'Иша',k:'isha'}].forEach(pr=>{
-    const m=t2m(p[pr.k]);if(!m)return;const at=m-ahead;if(at<=now)return;
-    notifTimers.push(setTimeout(()=>maybeNotify(`🕌 ${pr.n}`,`Через ${ahead} мин · ${p[pr.k]}`,'p'+pr.k),(at-now)*60000));
-  });
-  tasks.filter(isToday).forEach(t=>{
-    if(!t.remind||isDone(t))return;const tm=tTime(t);if(!tm)return;
-    const at=t2m(tm)-t.remind;if(at<=now)return;
-    notifTimers.push(setTimeout(()=>maybeNotify(`⏰ ${t.name}`,`Через ${t.remind} мин · ${tm}`,'t'+t.id),(at-now)*60000));
-  });
-}
+let sentNotifTags = storageGet('mz5_notif_tags', {});
+const notifications = createNotificationService({
+  getSettings: () => settings,
+  getTasks: () => tasks,
+  getPrayers: () => getP(),
+  getSentTags: () => sentNotifTags,
+  setSentTags: (v) => {
+    sentNotifTags = v;
+  },
+  storageSet,
+  nowM,
+  t2m,
+  isToday,
+  isDone,
+  tTime
+});
+const requestNotifs = () => notifications.requestNotifs();
+const scheduleNotifs = () => notifications.scheduleNotifs();
 
 // ═══════════════════════════════════════════════════
 // ── TASBIH ──
@@ -1064,7 +899,7 @@ function tsbRenderZikrList(){
   if(!el) return;
   const all = tsbAllZikrs();
   el.innerHTML = all.map(z => `
-    <div class="tsb-zikr-item ${z.id===tsbState.activeId?'active-zikr':''}" onclick="tsbSelect('${z.id}')">
+    <div class="tsb-zikr-item ${z.id===tsbState.activeId?'active-zikr':''}" data-action="tsb-select" data-id="${z.id}">
       <div class="tzi-ar">${z.ar}</div>
       <div class="tzi-body">
         <div class="tzi-name">${z.name}</div>
@@ -1072,7 +907,7 @@ function tsbRenderZikrList(){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <div class="tzi-target">×${z.target}</div>
-        ${!z.preset ? `<button class="tsb-ctrl-btn danger" style="width:26px;height:26px;font-size:12px" onclick="event.stopPropagation();tsbDeleteCustom('${z.id}')">🗑</button>` : ''}
+        ${!z.preset ? `<button class="tsb-ctrl-btn danger" style="width:26px;height:26px;font-size:12px" data-action="tsb-delete-custom" data-id="${z.id}">🗑</button>` : ''}
       </div>
     </div>`).join('');
 }
@@ -1162,75 +997,24 @@ function renderAll(){
 // ─── Misc ───────────────────────────────────────────
 function resetToday(){if(!confirm('Сбросить все отметки за сегодня?'))return;const d=ds();Object.keys(completions).forEach(id=>{completions[id]=completions[id].filter(x=>x!==d)});tasks.forEach(t=>{if(t.streak)t.streak.doneDates=t.streak.doneDates.filter(x=>x!==d)});saveAll();renderAll()}
 function exportData(){const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify({tasks,completions,settings},null,2));a.download='mizan.json';a.click()}
-function hijri(date){const months=['Мухаррам','Сафар','Раби I','Раби II','Джумада I','Джумада II','Раджаб','Шаабан','Рамадан','Шавваль','Зуль-Каада','Зуль-Хиджжа'];const diff=(date-new Date('0622-07-16'))/(29.53058*86400000);const tm=Math.floor(diff);return`${months[tm%12]} ${Math.floor(tm/12)+1} г.х.`}
-
 // ═══════════════════════════════════════════════════
 // AUTH UI
 // ═══════════════════════════════════════════════════
-let authMode = 'signin'; // 'signin' | 'signup'
-
-function switchAuthTab(mode){
-  authMode = mode;
-  document.getElementById('tab-signin').classList.toggle('active', mode==='signin');
-  document.getElementById('tab-signup').classList.toggle('active', mode==='signup');
-  document.getElementById('auth-submit-btn').textContent = mode==='signin' ? 'Войти' : 'Создать аккаунт';
-  document.getElementById('auth-forgot').style.display = mode==='signin' ? '' : 'none';
-  document.getElementById('auth-error').classList.remove('show');
-  document.getElementById('auth-success').classList.remove('show');
-  // Update autocomplete
-  document.getElementById('auth-password').autocomplete = mode==='signin' ? 'current-password' : 'new-password';
-}
-
-function setAuthError(msg){ const el=document.getElementById('auth-error'); el.textContent=msg; el.classList.add('show'); document.getElementById('auth-success').classList.remove('show'); }
-function setAuthSuccess(msg){ const el=document.getElementById('auth-success'); el.textContent=msg; el.classList.add('show'); document.getElementById('auth-error').classList.remove('show'); }
-function clearAuthMessages(){ document.getElementById('auth-error').classList.remove('show'); document.getElementById('auth-success').classList.remove('show'); }
-
-async function authSubmit(){
-  const email    = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const btn      = document.getElementById('auth-submit-btn');
-
-  if(!email){ setAuthError('Введите email'); return; }
-  if(!password || password.length < 6){ setAuthError('Пароль — минимум 6 символов'); return; }
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Подождите…';
-  clearAuthMessages();
-
-  try {
-    let data;
-    if(authMode === 'signup'){
-      data = await authSignUp(email, password);
-      if(data.error || data.msg){ setAuthError(data.error || data.msg); btn.disabled=false; btn.textContent='Создать аккаунт'; return; }
-      setAuthSuccess('✓ Аккаунт создан! Проверьте email для подтверждения, затем войдите.');
-      switchAuthTab('signin');
-      btn.disabled=false;
-      return;
-    } else {
-      data = await authSignIn(email, password);
-      if(data.error || data.error_description){ setAuthError(data.error_description || data.error); btn.disabled=false; btn.textContent='Войти'; return; }
-    }
-    saveSession(data);
-    await onSignedIn();
-  } catch(e){
-    setAuthError('Ошибка соединения. Проверьте интернет.');
-    btn.disabled=false;
-    btn.textContent = authMode==='signin' ? 'Войти' : 'Создать аккаунт';
-  }
-}
-
-async function authForgotPassword(){
-  const email = document.getElementById('auth-email').value.trim();
-  if(!email){ setAuthError('Введите email выше'); return; }
-  try {
-    await fetch(`${SB_URL}/auth/v1/recover`, {
-      method:'POST',
-      headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-      body: JSON.stringify({email})
-    });
-    setAuthSuccess('✓ Письмо для сброса пароля отправлено на ' + email);
-  } catch(e){ setAuthError('Ошибка. Попробуйте позже.'); }
-}
+const authUi = createAuthUI({
+  authSignUp,
+  authSignIn,
+  recoverPassword: (email) =>
+    fetch(`${SB_URL}/auth/v1/recover`, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    }),
+  saveSession,
+  onSignedIn: () => onSignedIn()
+});
+const switchAuthTab = authUi.switchAuthTab;
+const authSubmit = authUi.authSubmit;
+const authForgotPassword = authUi.authForgotPassword;
 
 function showAuthScreen(){
   document.getElementById('auth-screen').style.display = 'flex';
@@ -1306,8 +1090,85 @@ function hideSyncBanner(wrap, msg, color){
   setTimeout(()=>{ wrap.firstChild.style.opacity='0'; setTimeout(()=>wrap.remove(),400); }, 2000);
 }
 
+function bindStaticEvents(){
+  document.getElementById('tab-signin')?.addEventListener('click',()=>switchAuthTab('signin'));
+  document.getElementById('tab-signup')?.addEventListener('click',()=>switchAuthTab('signup'));
+  document.getElementById('auth-submit-btn')?.addEventListener('click',authSubmit);
+  document.getElementById('auth-forgot-link')?.addEventListener('click',authForgotPassword);
+  document.getElementById('auth-password')?.addEventListener('keydown',(event)=>{ if(event.key==='Enter') authSubmit(); });
+
+  document.querySelectorAll('.nav-tab[data-page]').forEach((el)=>el.addEventListener('click',()=>showPage(el.dataset.page, el)));
+  document.querySelectorAll('.mnb[data-page]').forEach((el)=>el.addEventListener('click',()=>showPage(el.dataset.page, null)));
+  document.getElementById('nav-add')?.addEventListener('click',openModal);
+  document.getElementById('nav-user')?.addEventListener('click',authSignOut);
+
+  document.getElementById('pc-compact')?.addEventListener('click',tglPrayers);
+  document.getElementById('pc-loc')?.addEventListener('click',(event)=>{ event.stopPropagation(); refreshPrayers(); });
+  document.getElementById('notif-bar')?.addEventListener('click',requestNotifs);
+
+  document.getElementById('tsb-tap-btn')?.addEventListener('click',tsbTap);
+  document.getElementById('tsb-tap-btn')?.addEventListener('touchstart',(event)=>{ event.preventDefault(); tsbTap(); }, { passive: false });
+  document.getElementById('tsb-reset-btn')?.addEventListener('click',tsbReset);
+  document.getElementById('tsb-undo-btn')?.addEventListener('click',tsbUndo);
+  document.getElementById('tsb-add-btn')?.addEventListener('click',tsbOpenAddModal);
+  document.getElementById('tsb-history-clear')?.addEventListener('click',tsbClearHistory);
+  document.getElementById('tsb-close-btn')?.addEventListener('click',tsbCloseModal);
+  document.getElementById('tsb-cancel-btn')?.addEventListener('click',tsbCloseModal);
+  document.getElementById('tsb-save-btn')?.addEventListener('click',tsbSaveCustom);
+  document.getElementById('tsb-modal')?.addEventListener('click',(event)=>{ if(event.target===event.currentTarget) tsbCloseModal(); });
+
+  document.getElementById('qibla-calc-btn')?.addEventListener('click',calcQibla);
+  document.getElementById('search-inp')?.addEventListener('input',onSearch);
+  document.getElementById('search-clear')?.addEventListener('click',clearSearch);
+  document.getElementById('filter-toggle-btn')?.addEventListener('click',toggleFilterPanel);
+  document.getElementById('clear-all-filters')?.addEventListener('click',clearAllFilters);
+  document.getElementById('notif-ahead')?.addEventListener('change',saveSettings);
+  document.getElementById('notif-cooldown')?.addEventListener('change',saveSettings);
+  document.getElementById('toggle-night')?.addEventListener('click',()=>{ document.getElementById('toggle-night')?.classList.toggle('on'); saveSettings(); });
+  document.getElementById('reset-today-btn')?.addEventListener('click',resetToday);
+  document.getElementById('export-data-btn')?.addEventListener('click',exportData);
+
+  document.getElementById('modal-close-btn')?.addEventListener('click',closeModal);
+  document.getElementById('modal-cancel-btn')?.addEventListener('click',closeModal);
+  document.getElementById('modal-save-btn')?.addEventListener('click',saveTask);
+  document.getElementById('modal')?.addEventListener('click',closeOut);
+  document.getElementById('f-freq')?.addEventListener('change',onFreqChange);
+  document.getElementById('f-anchor')?.addEventListener('change',onAnchorChange);
+  document.querySelectorAll('.po[data-v]').forEach((el)=>el.addEventListener('click',()=>selPrio(el)));
+  document.getElementById('show-today-click')?.addEventListener('click',()=>document.getElementById('f-show-today')?.click());
+  document.getElementById('f-show-today')?.addEventListener('click',(event)=>event.stopPropagation());
+  document.getElementById('show-today-click')?.addEventListener('mouseover',(event)=>{ event.currentTarget.style.borderColor='var(--g200)'; });
+  document.getElementById('show-today-click')?.addEventListener('mouseout',(event)=>{ event.currentTarget.style.borderColor='var(--border)'; });
+
+  document.addEventListener('click', (event) => {
+    const actionEl = event.target.closest('[data-action]');
+    if (!actionEl) return;
+    const action = actionEl.dataset.action;
+    const id = actionEl.dataset.id;
+    const key = actionEl.dataset.key;
+    const value = actionEl.dataset.value;
+    if (actionEl.closest('.tc-actions')) event.stopPropagation();
+
+    if (action === 'today-show-all') { todayShowAll = true; renderToday(); return; }
+    if (action === 'today-show-less') { todayShowAll = false; renderToday(); return; }
+    if (action === 'toggle-task' && id) { toggle(Number(id)); return; }
+    if (action === 'edit-task' && id) { editTask(Number(id)); return; }
+    if (action === 'delete-task' && id) { deleteTask(Number(id)); return; }
+    if (action === 'set-filter' && key != null) { setFilter(key, value ?? ''); return; }
+    if (action === 'clear-filters') { clearAllFilters(); return; }
+    if (action === 'toggle-purpose') { togglePurpose(actionEl); return; }
+    if (action === 'tsb-select' && id) { tsbSelect(id); return; }
+    if (action === 'tsb-delete-custom' && id) { tsbDeleteCustom(id); return; }
+    if (action === 'set-prayer' && key != null) {
+      const input = actionEl;
+      setPrayer(key, input.value);
+    }
+  });
+}
+
 // ── Init ───────────────────────────────────────────
 (async()=>{
+  bindStaticEvents();
   // Try restore session from localStorage
   const savedObj = storageGet(STORAGE_KEYS.session, null);
   if(savedObj){

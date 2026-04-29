@@ -27,8 +27,8 @@
     </div>
 
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Войти</button>
-      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Регистрация</button>
+      <button class="auth-tab active" id="tab-signin" data-auth-tab="signin">Войти</button>
+      <button class="auth-tab" id="tab-signup" data-auth-tab="signup">Регистрация</button>
     </div>
 
     <div class="auth-error" id="auth-error"></div>
@@ -40,13 +40,13 @@
     </div>
     <div class="auth-field" id="auth-pass-field">
       <label>Пароль</label>
-      <input type="password" id="auth-password" placeholder="Минимум 6 символов" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit()">
+      <input type="password" id="auth-password" placeholder="Минимум 6 символов" autocomplete="current-password" >
     </div>
 
-    <button class="auth-btn" id="auth-submit-btn" onclick="authSubmit()">Войти</button>
+    <button class="auth-btn" id="auth-submit-btn">Войти</button>
 
     <div class="auth-forgot" id="auth-forgot">
-      <a onclick="authForgotPassword()">Забыли пароль?</a>
+      <a id="auth-forgot-link">Забыли пароль?</a>
     </div>
   </div>
 </div>
@@ -61,15 +61,15 @@
     <div><div class="logo-name">ميزان</div><div class="logo-sub">Ибадат</div></div>
   </div>
   <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('today',this)">☀️ Сегодня</button>
-    <button class="nav-tab" onclick="showPage('streaks',this)">🔥 Цепочки</button>
-    <button class="nav-tab" onclick="showPage('tasbih',this)">📿 Тасбих</button>
-    <button class="nav-tab" onclick="showPage('catalog',this)">🗂 Каталог</button>
-    <button class="nav-tab" onclick="showPage('qibla',this)">🧭 Кибла</button>
-    <button class="nav-tab" onclick="showPage('settings',this)" aria-label="Открыть настройки">⚙️</button>
+    <button class="nav-tab active" data-page="today">☀️ Сегодня</button>
+    <button class="nav-tab" data-page="streaks">🔥 Цепочки</button>
+    <button class="nav-tab" data-page="tasbih">📿 Тасбих</button>
+    <button class="nav-tab" data-page="catalog">🗂 Каталог</button>
+    <button class="nav-tab" data-page="qibla">🧭 Кибла</button>
+    <button class="nav-tab" data-page="settings" aria-label="Открыть настройки">⚙️</button>
   </div>
-  <button class="nav-add" onclick="openModal()" title="Добавить ритуал" aria-label="Добавить ритуал">+</button>
-  <div class="nav-user" id="nav-user" onclick="authSignOut()" title="Выйти" style="display:none">
+  <button class="nav-add" id="nav-add" title="Добавить ритуал" aria-label="Добавить ритуал">+</button>
+  <div class="nav-user" id="nav-user" title="Выйти" style="display:none">
     <div class="nav-user-avatar" id="nav-avatar">?</div>
     <div>
       <div class="nav-user-email" id="nav-email"></div>
@@ -81,11 +81,11 @@
 <div id="app-body" style="display:none">
 
 <nav class="mobile-nav">
-  <button class="mnb active" id="mnb-today" onclick="showPage('today',null)"><span class="mi">☀️</span>Сегодня</button>
-  <button class="mnb" id="mnb-streaks" onclick="showPage('streaks',null)"><span class="mi">🔥</span>Цепочки</button>
-  <button class="mnb" id="mnb-tasbih" onclick="showPage('tasbih',null)"><span class="mi">📿</span>Тасбих</button>
-  <button class="mnb" id="mnb-catalog" onclick="showPage('catalog',null)"><span class="mi">🗂</span>Каталог</button>
-  <button class="mnb" id="mnb-settings" onclick="showPage('settings',null)"><span class="mi">⚙️</span>Ещё</button>
+  <button class="mnb active" id="mnb-today" data-page="today"><span class="mi">☀️</span>Сегодня</button>
+  <button class="mnb" id="mnb-streaks" data-page="streaks"><span class="mi">🔥</span>Цепочки</button>
+  <button class="mnb" id="mnb-tasbih" data-page="tasbih"><span class="mi">📿</span>Тасбих</button>
+  <button class="mnb" id="mnb-catalog" data-page="catalog"><span class="mi">🗂</span>Каталог</button>
+  <button class="mnb" id="mnb-settings" data-page="settings"><span class="mi">⚙️</span>Ещё</button>
 </nav>
 
 <!-- TODAY -->
@@ -110,7 +110,7 @@
   <!-- Prayer times: compact by default, expandable -->
   <div class="prayer-card" id="prayer-card" style="padding:0;cursor:default">
     <!-- Compact row — always visible -->
-    <div id="pc-compact" onclick="tglPrayers()" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none">
+    <div id="pc-compact" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none">
       <div class="pc-dot" style="flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
         <div id="pc-compact-text" style="font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">⏳ Загрузка…</div>
@@ -129,7 +129,7 @@
     <div id="pc-expanded" style="display:none;border-top:1px solid var(--border)">
       <div style="padding:12px 16px 0;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)">Намаз — Джафари</span>
-        <button class="pc-loc" onclick="refreshPrayers();event.stopPropagation()">📍 <span id="loc-name">Определить</span></button>
+        <button class="pc-loc" id="pc-loc">📍 <span id="loc-name">Определить</span></button>
       </div>
       <div id="prayers-grid-wrap" style="padding:12px 16px 14px">
         <div style="text-align:center;padding:12px;color:var(--text3);font-size:13px">⏳ Загрузка…</div>
@@ -137,7 +137,7 @@
     </div>
   </div>
 
-  <div class="notif-bar" id="notif-bar" style="display:none" onclick="requestNotifs()">
+  <div class="notif-bar" id="notif-bar" style="display:none">
     <div style="font-size:20px">🔔</div>
     <div class="nb-text" style="flex:1"><strong>Включить напоминания</strong><span>О намазе и ритуалах вовремя</span></div>
     <button class="nb-btn">Включить</button>
@@ -177,19 +177,19 @@
 
     <!-- Big tap button -->
     <div>
-      <button class="tsb-tap-btn" id="tsb-tap-btn" onclick="tsbTap()" ontouchstart="tsbTap();event.preventDefault()">
+      <button class="tsb-tap-btn" id="tsb-tap-btn">
         📿
       </button>
     </div>
 
     <!-- Controls -->
     <div class="tsb-controls">
-      <button class="tsb-ctrl-btn danger" onclick="tsbReset()" title="Сбросить счётчик" aria-label="Сбросить счётчик">↺</button>
+      <button class="tsb-ctrl-btn danger" id="tsb-reset-btn" title="Сбросить счётчик" aria-label="Сбросить счётчик">↺</button>
       <div class="tsb-cycle-count">
         <span class="tsb-cycle-num" id="tsb-cycles">0</span>
         <span class="tsb-cycle-lbl">Циклов</span>
       </div>
-      <button class="tsb-ctrl-btn" onclick="tsbUndo()" title="Отменить последнее нажатие" aria-label="Отменить последнее нажатие">⌫</button>
+      <button class="tsb-ctrl-btn" id="tsb-undo-btn" title="Отменить последнее нажатие" aria-label="Отменить последнее нажатие">⌫</button>
     </div>
   </div>
 
@@ -198,7 +198,7 @@
   <div class="tsb-zikr-list" id="tsb-zikr-list"></div>
 
   <!-- Add custom -->
-  <button class="tsb-add-btn" onclick="tsbOpenAddModal()">
+  <button class="tsb-add-btn" id="tsb-add-btn">
     <span style="font-size:18px">＋</span> Добавить свой зикр
   </button>
 
@@ -206,7 +206,7 @@
   <div class="tsb-history">
     <div class="tsb-history-title">
       История сессий
-      <button class="tsb-history-clear" onclick="tsbClearHistory()">Очистить</button>
+      <button class="tsb-history-clear" id="tsb-history-clear">Очистить</button>
     </div>
     <div id="tsb-history-list"></div>
   </div>
@@ -214,12 +214,12 @@
 </div>
 
 <!-- Tasbih add-zikr modal -->
-<div class="backdrop" id="tsb-modal" onclick="if(event.target===this)tsbCloseModal()">
+<div class="backdrop" id="tsb-modal">
 <div class="modal" style="max-height:70vh">
   <div class="modal-handle"></div>
   <div class="modal-head">
     <div class="modal-title">Свой зикр</div>
-    <button class="mclose" onclick="tsbCloseModal()" aria-label="Закрыть окно">×</button>
+    <button class="mclose" id="tsb-close-btn" aria-label="Закрыть окно">×</button>
   </div>
   <div class="mbody">
     <div class="fg"><label class="fl">Название</label><input class="fi" id="tsb-f-name" placeholder="Например: ЛяилляхаИллаллах"></div>
@@ -237,8 +237,8 @@
     </div>
   </div>
   <div class="mfoot">
-    <button class="btn-g" onclick="tsbCloseModal()">Отмена</button>
-    <button class="btn-p" onclick="tsbSaveCustom()">Добавить</button>
+    <button class="btn-g" id="tsb-cancel-btn">Отмена</button>
+    <button class="btn-p" id="tsb-save-btn">Добавить</button>
   </div>
 </div>
 </div>
@@ -286,7 +286,7 @@
     <div id="qibla-deg" style="font-family:'Amiri',serif;font-size:52px;font-weight:700;color:var(--accent-d);line-height:1;margin-bottom:8px">—°</div>
     <div id="qibla-dir" style="font-size:16px;font-weight:600;color:var(--text3);margin-bottom:6px">Нажмите кнопку ниже</div>
     <div id="qibla-desc" style="font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:20px">Будет рассчитано по вашему местоположению.<br>Зелёная стрелка указывает на Каабу.</div>
-    <button class="qi-btn" onclick="calcQibla()" style="font-size:14px;padding:10px 20px;border-radius:10px">📍 Определить Киблу</button>
+    <button class="qi-btn" id="qibla-calc-btn" style="font-size:14px;padding:10px 20px;border-radius:10px">📍 Определить Киблу</button>
   </div>
 
   <!-- Info cards -->
@@ -317,11 +317,11 @@
 <div id="page-catalog" class="page">
   <div class="search-box">
     <span class="si">🔍</span>
-    <input type="text" id="search-inp" placeholder="Поиск по названию, цели, типу…" oninput="onSearch()">
-    <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Очистить поиск">×</button>
+    <input type="text" id="search-inp" placeholder="Поиск по названию, цели, типу…">
+    <button class="search-clear" id="search-clear" aria-label="Очистить поиск">×</button>
   </div>
   <div class="filter-toggle">
-    <button class="filter-toggle-btn" id="filter-toggle-btn" onclick="toggleFilterPanel()">
+    <button class="filter-toggle-btn" id="filter-toggle-btn">
       <span>⚙ Фильтры</span>
       <span class="filter-active-count" id="filter-count" style="display:none">0</span>
     </button>
@@ -345,7 +345,7 @@
       <div class="chips-row" id="prio-chips"></div>
     </div>
     <div style="margin-top:14px;display:flex;justify-content:flex-end">
-      <button class="btn-sm" onclick="clearAllFilters()">Сбросить все фильтры</button>
+      <button class="btn-sm" id="clear-all-filters">Сбросить все фильтры</button>
     </div>
   </div>
   <div id="catalog-content"></div>
@@ -365,18 +365,18 @@
     </div>
     <div class="sr">
       <div><div class="sr-lbl">Предупреждать за</div><div class="sr-sub">До намаза и ритуала</div></div>
-      <select class="fi" style="width:auto" id="notif-ahead" onchange="saveSettings()">
+      <select class="fi" style="width:auto" id="notif-ahead">
         <option value="5">5 мин</option><option value="10" selected>10 мин</option>
         <option value="15">15 мин</option><option value="30">30 мин</option>
       </select>
     </div>
     <div class="sr">
       <div><div class="sr-lbl">Ночной режим</div><div class="sr-sub">Тишина 23:00–05:00</div></div>
-      <button class="toggle on" id="toggle-night" onclick="this.classList.toggle('on');saveSettings()" aria-label="Включить или выключить ночной режим"></button>
+      <button class="toggle on" id="toggle-night" aria-label="Включить или выключить ночной режим"></button>
     </div>
     <div class="sr">
       <div><div class="sr-lbl">Анти-дубли уведомлений</div><div class="sr-sub">Минимальная пауза между одинаковыми уведомлениями</div></div>
-      <select class="fi" style="width:auto" id="notif-cooldown" onchange="saveSettings()">
+      <select class="fi" style="width:auto" id="notif-cooldown">
         <option value="10">10 мин</option><option value="20">20 мин</option>
         <option value="30" selected>30 мин</option><option value="60">60 мин</option>
       </select>
@@ -384,8 +384,8 @@
   </div>
   <div class="sg">
     <div class="sg-title">Данные</div>
-    <div class="sr"><div><div class="sr-lbl">Сбросить выполнения сегодня</div></div><button class="btn-sm" onclick="resetToday()">Сбросить</button></div>
-    <div class="sr"><div><div class="sr-lbl">Экспорт данных</div></div><button class="btn-sm" onclick="exportData()">Скачать JSON</button></div>
+    <div class="sr"><div><div class="sr-lbl">Сбросить выполнения сегодня</div></div><button class="btn-sm" id="reset-today-btn">Сбросить</button></div>
+    <div class="sr"><div><div class="sr-lbl">Экспорт данных</div></div><button class="btn-sm" id="export-data-btn">Скачать JSON</button></div>
   </div>
   <div class="sg">
     <div class="sg-title">Аналитика</div>
@@ -398,12 +398,12 @@
 </div>
 
 <!-- MODAL -->
-<div class="backdrop" id="modal" onclick="closeOut(event)">
+<div class="backdrop" id="modal">
 <div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-head">
     <div class="modal-title" id="modal-title">Новый ритуал</div>
-    <button class="mclose" onclick="closeModal()" aria-label="Закрыть окно">×</button>
+    <button class="mclose" id="modal-close-btn" aria-label="Закрыть окно">×</button>
   </div>
   <div class="mbody">
 
@@ -455,9 +455,9 @@
 
       <div class="fg"><label class="fl">Статус обязательности</label>
         <div class="prio-row">
-          <div class="po sel" data-v="fard" onclick="selPrio(this)"><span class="pn">Ваджиб</span><span class="par">واجب</span></div>
-          <div class="po sel" data-v="sunnah" onclick="selPrio(this)"><span class="pn">Мустахаб</span><span class="par">مستحب</span></div>
-          <div class="po" data-v="mustahabb" onclick="selPrio(this)"><span class="pn">Нафиля</span><span class="par">نافلة</span></div>
+          <div class="po sel" data-v="fard" ><span class="pn">Ваджиб</span><span class="par">واجب</span></div>
+          <div class="po sel" data-v="sunnah" ><span class="pn">Мустахаб</span><span class="par">مستحب</span></div>
+          <div class="po" data-v="mustahabb" ><span class="pn">Нафиля</span><span class="par">نافلة</span></div>
         </div>
       </div>
     </div>
@@ -467,7 +467,7 @@
       <div class="form-section-title">Расписание</div>
       <div class="frow">
         <div class="fg"><label class="fl">Периодичность</label>
-          <select class="fi" id="f-freq" onchange="onFreqChange()">
+          <select class="fi" id="f-freq">
             <option value="daily">☀️ Каждый день</option>
             <option value="weekly">📅 Еженедельно</option>
             <option value="monthly">🌙 Ежемесячно</option>
@@ -485,7 +485,7 @@
         </div>
       </div>
       <div class="fg"><label class="fl">Привязка к намазу</label>
-        <select class="fi" id="f-anchor" onchange="onAnchorChange()">
+        <select class="fi" id="f-anchor">
           <option value="">— Указать время вручную</option>
           <option value="before_fajr">До Фаджра (нафиля)</option>
           <option value="after_fajr">После Фаджра ✦</option>
@@ -524,8 +524,8 @@
       </div>
       <div class="fg" id="show-today-wrap">
         <label class="fl">Лента «Сегодня»</label>
-        <div onclick="document.getElementById('f-show-today').click()" style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--n50);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--g200)'" onmouseout="this.style.borderColor='var(--border)'">
-          <input type="checkbox" id="f-show-today" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()">
+        <div id="show-today-click" style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--n50);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .2s">
+          <input type="checkbox" id="f-show-today" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
           <div>
             <div style="font-size:13px;font-weight:500;color:var(--text)">Показывать в ленте сегодня</div>
             <div style="font-size:11px;color:var(--text3);margin-top:1px">Для ритуалов без привязки к намазу или конкретному времени</div>
@@ -536,14 +536,14 @@
 
   </div>
   <div class="mfoot">
-    <button class="btn-g" onclick="closeModal()">Отмена</button>
-    <button class="btn-p" onclick="saveTask()">Сохранить</button>
+    <button class="btn-g" id="modal-cancel-btn">Отмена</button>
+    <button class="btn-p" id="modal-save-btn">Сохранить</button>
   </div>
 </div>
 </div>
 
 </div><!-- /app-body -->
 
-<script src="./app.js"></script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
