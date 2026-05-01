@@ -1,11 +1,9 @@
 import { ANCHOR_LBL, FORMS, FREQS, PRIO_LABEL, PRIO_TAG, PR_NAMES, PURPOSES_UNIQUE, TYPES } from './src/constants.js';
 import { addM, ds, hijri, nowM, t2m } from './src/date-time.js';
+import { debounce } from './src/debounce.js';
 import { createAuthUI } from './src/auth-ui.js';
-import { createCatalogModule } from './src/catalog.js';
-import { renderCalendar as renderCalendarModule, renderInsights as renderInsightsModule } from './src/insights.js';
 import { createNotificationService } from './src/notifications.js';
 import { calcPrayers, qiblaB } from './src/prayer-calculations.js';
-import { createSettingsModule } from './src/settings.js';
 import { DATA_VERSION, STORAGE_KEYS, storageGet, storageRemove, storageSet } from './src/storage.js';
 import { createTaskModalModule } from './src/task-modal.js';
 import { createTasbihModule } from './src/tasbih.js';
@@ -556,6 +554,7 @@ function renderStreaks(){
 // ═══════════════════════════════════════════════════
 let filterOpen=false;
 const fState={freq:'',type:'',purpose:'',prio:''};
+const debouncedRenderCatalog = debounce(()=>renderCatalog(), 200);
 
 function renderCatalogFilters(){
   // Freq chips
@@ -574,16 +573,16 @@ function renderCatalogFilters(){
   document.getElementById('filter-toggle-btn').classList.toggle('has-filters',cnt>0);
 }
 
-function setFilter(key,val){fState[key]=val;renderCatalog()}
-function clearAllFilters(){Object.keys(fState).forEach(k=>fState[k]='');document.getElementById('search-inp').value='';renderCatalog()}
+function setFilter(key,val){debouncedRenderCatalog.cancel();fState[key]=val;renderCatalog()}
+function clearAllFilters(){debouncedRenderCatalog.cancel();Object.keys(fState).forEach(k=>fState[k]='');document.getElementById('search-inp').value='';renderCatalog()}
 function toggleFilterPanel(){filterOpen=!filterOpen;document.getElementById('filter-panel').classList.toggle('hidden',!filterOpen)}
 
 function onSearch(){
   const v=document.getElementById('search-inp').value;
   document.getElementById('search-clear').classList.toggle('visible',v.length>0);
-  renderCatalog();
+  debouncedRenderCatalog();
 }
-function clearSearch(){document.getElementById('search-inp').value='';document.getElementById('search-clear').classList.remove('visible');renderCatalog()}
+function clearSearch(){debouncedRenderCatalog.cancel();document.getElementById('search-inp').value='';document.getElementById('search-clear').classList.remove('visible');renderCatalog()}
 
 function renderCatalog(){
   renderCatalogFilters();
@@ -626,23 +625,27 @@ function renderCatalog(){
   }).join('');
 }
 
-function renderInsights(){
-  renderInsightsModule({ tasks, completions, ds });
+let insightsModPromise = null;
+function loadInsightsModule(){
+  if(!insightsModPromise) insightsModPromise = import('./src/insights.js');
+  return insightsModPromise;
 }
-function renderCalendar(){
-  renderCalendarModule({ tasks, completions, ds });
+function renderInsightsAndCalendar(){
+  loadInsightsModule().then((m)=>{
+    m.renderInsights({ tasks, completions, ds });
+    m.renderCalendar({ tasks, completions, ds });
+  });
 }
 
 // ─── Settings ─────────────────────────────────────
 function renderSettings(){
   const p=getP()||{};
   const prs=[{k:'fajr',n:'Фаджр'},{k:'sunrise',n:'Шурук'},{k:'dhuhr',n:'Зухр'},{k:'asr',n:'Аср'},{k:'maghrib',n:'Магриб'},{k:'isha',n:'Иша'}];
-  document.getElementById('prayer-grid').innerHTML=prs.map(pr=>`<div class="pg-cell"><div class="pg-lbl">${pr.n}</div><input class="pg-inp" type="time" value="${p[pr.k]||''}" onchange="setPrayer('${pr.k}',this.value)"></div>`).join('');
+  document.getElementById('prayer-grid').innerHTML=prs.map(pr=>`<div class="pg-cell"><div class="pg-lbl">${pr.n}</div><input class="pg-inp" type="time" data-action="set-prayer" data-key="${pr.k}" value="${p[pr.k]||''}"></div>`).join('');
   if(settings.notifAhead)document.getElementById('notif-ahead').value=settings.notifAhead;
   document.getElementById('notif-cooldown').value=String(settings.reminderCooldownMin || 30);
   document.getElementById('toggle-night').classList.toggle('on', !!settings.nightMode);
-  renderInsights();
-  renderCalendar();
+  renderInsightsAndCalendar();
 }
 function setPrayer(k,v){if(!settings.prayers)settings.prayers={};settings.prayers[k]=v;if(prayers)prayers[k]=v;saveAll();scheduleNotifs();const p=getP();if(p)renderPrayerUI(p)}
 function saveSettings(){settings.notifAhead=+document.getElementById('notif-ahead').value;settings.nightMode=document.getElementById('toggle-night').classList.contains('on');settings.reminderCooldownMin=+document.getElementById('notif-cooldown').value||30;saveAll();scheduleNotifs()}
@@ -973,6 +976,7 @@ function tsbClearHistory(){
 
 // ── Pages ─────────────────────────────────────────
 function showPage(name,tabEl){
+  if(curPage==='catalog' && name!=='catalog') debouncedRenderCatalog.cancel();
   curPage=name;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
@@ -1159,10 +1163,13 @@ function bindStaticEvents(){
     if (action === 'toggle-purpose') { togglePurpose(actionEl); return; }
     if (action === 'tsb-select' && id) { tsbSelect(id); return; }
     if (action === 'tsb-delete-custom' && id) { tsbDeleteCustom(id); return; }
-    if (action === 'set-prayer' && key != null) {
-      const input = actionEl;
-      setPrayer(key, input.value);
-    }
+  });
+
+  document.addEventListener('change', (event)=>{
+    const el = event.target;
+    if(!(el instanceof HTMLInputElement) || el.dataset.action !== 'set-prayer') return;
+    const key = el.dataset.key;
+    if(key != null) setPrayer(key, el.value);
   });
 }
 
