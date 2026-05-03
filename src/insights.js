@@ -39,15 +39,25 @@ export function renderCalendar({ tasks, completions, ds }) {
   const startDow = (first.getDay() + 6) % 7;
   const names = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   const cells = [];
+  let doneDays = 0;
   for (let i = 0; i < startDow; i++) cells.push('<div class="cal-day empty"></div>');
   for (let d = 1; d <= days; d++) {
     const dt = new Date(y, m, d);
     const iso = ds(dt);
     const done = doneOnDate(tasks, completions, iso) > 0;
     const today = iso === ds();
-    cells.push(`<div class="cal-day ${done ? 'done' : ''} ${today ? 'today' : ''}">${d}</div>`);
+    if (done) doneDays += 1;
+    const weekend = dt.getDay() === 0 || dt.getDay() === 6;
+    cells.push(`<div class="cal-day ${done ? 'done' : ''} ${today ? 'today' : ''} ${weekend ? 'weekend' : ''}">${d}</div>`);
   }
-  root.innerHTML = `<div class="cal-head"><strong>${now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}</strong><span style="font-size:12px;color:var(--text3)">Зеленый = есть выполнение</span></div>
-  <div class="cal-grid">${names.map((n) => `<div class="cal-dow">${n}</div>`).join('')}</div>
-  <div class="cal-grid" style="margin-top:6px">${cells.join('')}</div>`;
+  root.innerHTML = `<div class="cal-head">
+    <strong>${now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}</strong>
+    <span class="cal-meta">${doneDays}/${days} дней с выполнением</span>
+  </div>
+  <div class="cal-legend">
+    <span class="cal-dot done"></span><span>Есть выполнение</span>
+    <span class="cal-dot today"></span><span>Сегодня</span>
+  </div>
+  <div class="cal-grid cal-dow-row">${names.map((n) => `<div class="cal-dow">${n}</div>`).join('')}</div>
+  <div class="cal-grid cal-days">${cells.join('')}</div>`;
 }

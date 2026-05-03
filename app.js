@@ -499,12 +499,7 @@ function cardHTML(t,sk){
       ${t.short?`<div style="font-size:12px;color:var(--text3);margin-top:4px">${t.short}</div>`:''}
       ${t.streak?miniBar(t):''}
     </div>
-    <div class="tc-right">${cd}
-      <div class="tc-actions">
-        <button class="tc-btn" data-action="edit-task" data-id="${t.id}">✏️</button>
-        <button class="tc-btn del" data-action="delete-task" data-id="${t.id}">🗑</button>
-      </div>
-    </div>
+    <div class="tc-right">${cd}</div>
   </div>`;
 }
 
@@ -555,6 +550,8 @@ function renderStreaks(){
 let filterOpen=false;
 const fState={freq:'',type:'',purpose:'',prio:''};
 const debouncedRenderCatalog = debounce(()=>renderCatalog(), 200);
+let lastActionAt = 0;
+let lastActionKey = '';
 
 function renderCatalogFilters(){
   // Freq chips
@@ -1152,6 +1149,12 @@ function bindStaticEvents(){
     const key = actionEl.dataset.key;
     const value = actionEl.dataset.value;
     if (actionEl.closest('.tc-actions')) event.stopPropagation();
+
+    const actionKey = `${action}:${id ?? ''}`;
+    const ts = Date.now();
+    if (ts - lastActionAt < 320 && actionKey === lastActionKey) return;
+    lastActionAt = ts;
+    lastActionKey = actionKey;
 
     if (action === 'today-show-all') { todayShowAll = true; renderToday(); return; }
     if (action === 'today-show-less') { todayShowAll = false; renderToday(); return; }
