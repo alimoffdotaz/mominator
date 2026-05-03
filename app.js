@@ -1188,6 +1188,30 @@ function bindStaticEvents(){
     if (action === 'toggle-purpose') { togglePurpose(actionEl); return; }
     if (action === 'tsb-select' && id) { tsbSelect(id); return; }
     if (action === 'tsb-delete-custom' && id) { tsbDeleteCustom(id); return; }
+    if (action === 'cal-prev') {
+      loadInsightsModule().then((m) => {
+        m.stepCalendarMonth(-1);
+        m.renderInsights({ tasks, completions, ds });
+        m.renderCalendar({ tasks, completions, ds });
+      });
+      return;
+    }
+    if (action === 'cal-next') {
+      loadInsightsModule().then((m) => {
+        m.stepCalendarMonth(1);
+        m.renderInsights({ tasks, completions, ds });
+        m.renderCalendar({ tasks, completions, ds });
+      });
+      return;
+    }
+    if (action === 'cal-today') {
+      loadInsightsModule().then((m) => {
+        m.resetCalendarView();
+        m.renderInsights({ tasks, completions, ds });
+        m.renderCalendar({ tasks, completions, ds });
+      });
+      return;
+    }
   });
 
   document.addEventListener('change', (event)=>{

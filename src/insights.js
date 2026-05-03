@@ -15,6 +15,35 @@ export function analytics(tasks, completions, ds, days) {
   return out;
 }
 
+/** Viewed month in settings calendar; null = current month */
+let calViewY = null;
+let calViewM = null;
+
+function viewedYM() {
+  const n = new Date();
+  return { y: calViewY ?? n.getFullYear(), m: calViewM ?? n.getMonth() };
+}
+
+export function stepCalendarMonth(delta) {
+  let { y, m } = viewedYM();
+  m += delta;
+  while (m < 0) {
+    m += 12;
+    y -= 1;
+  }
+  while (m > 11) {
+    m -= 12;
+    y += 1;
+  }
+  calViewY = y;
+  calViewM = m;
+}
+
+export function resetCalendarView() {
+  calViewY = null;
+  calViewM = null;
+}
+
 export function renderInsights({ tasks, completions, ds }) {
   const el = document.getElementById('insights-content');
   if (!el) return;
@@ -31,9 +60,8 @@ export function renderInsights({ tasks, completions, ds }) {
 export function renderCalendar({ tasks, completions, ds }) {
   const root = document.getElementById('calendar-content');
   if (!root) return;
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
+  const clock = new Date();
+  const { y, m } = viewedYM();
   const first = new Date(y, m, 1);
   const days = new Date(y, m + 1, 0).getDate();
   const startDow = (first.getDay() + 6) % 7;
@@ -45,15 +73,27 @@ export function renderCalendar({ tasks, completions, ds }) {
     const dt = new Date(y, m, d);
     const iso = ds(dt);
     const done = doneOnDate(tasks, completions, iso) > 0;
-    const today = iso === ds();
+    const today =
+      dt.getFullYear() === clock.getFullYear() &&
+      dt.getMonth() === clock.getMonth() &&
+      dt.getDate() === clock.getDate();
     if (done) doneDays += 1;
     const weekend = dt.getDay() === 0 || dt.getDay() === 6;
     cells.push(`<div class="cal-day ${done ? 'done' : ''} ${today ? 'today' : ''} ${weekend ? 'weekend' : ''}">${d}</div>`);
   }
+  const label = first.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  const isThisMonth = y === clock.getFullYear() && m === clock.getMonth();
   root.innerHTML = `<div class="cal-wrap">
   <div class="cal-head">
-    <strong>${now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}</strong>
-    <span class="cal-meta">${doneDays}/${days} дней с выполнением</span>
+    <div class="cal-nav-bar">
+      <button type="button" class="cal-nav-btn" data-action="cal-prev" aria-label="Предыдущий месяц">‹</button>
+      <strong class="cal-month-label">${label}</strong>
+      <button type="button" class="cal-nav-btn" data-action="cal-next" aria-label="Следующий месяц">›</button>
+    </div>
+    <div class="cal-subrow">
+      <span class="cal-meta">${doneDays}/${days} дней с выполнением</span>
+      <button type="button" class="cal-today-btn" data-action="cal-today" ${isThisMonth ? 'disabled' : ''}>Сегодня</button>
+    </div>
   </div>
   <div class="cal-legend">
     <span class="cal-dot done"></span><span>Есть выполнение</span>
