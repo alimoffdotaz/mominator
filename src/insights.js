@@ -50,7 +50,8 @@ export function renderCalendar({ tasks, completions, ds }) {
     const weekend = dt.getDay() === 0 || dt.getDay() === 6;
     cells.push(`<div class="cal-day ${done ? 'done' : ''} ${today ? 'today' : ''} ${weekend ? 'weekend' : ''}">${d}</div>`);
   }
-  root.innerHTML = `<div class="cal-head">
+  root.innerHTML = `<div class="cal-wrap">
+  <div class="cal-head">
     <strong>${now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}</strong>
     <span class="cal-meta">${doneDays}/${days} дней с выполнением</span>
   </div>
@@ -59,5 +60,6 @@ export function renderCalendar({ tasks, completions, ds }) {
     <span class="cal-dot today"></span><span>Сегодня</span>
   </div>
   <div class="cal-grid cal-dow-row">${names.map((n) => `<div class="cal-dow">${n}</div>`).join('')}</div>
-  <div class="cal-grid cal-days">${cells.join('')}</div>`;
+  <div class="cal-grid cal-days">${cells.join('')}</div>
+  </div>`;
 }

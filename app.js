@@ -3,7 +3,7 @@ import { addM, ds, hijri, nowM, t2m } from './src/date-time.js';
 import { debounce } from './src/debounce.js';
 import { createAuthUI } from './src/auth-ui.js';
 import { createNotificationService } from './src/notifications.js';
-import { calcPrayers, qiblaB } from './src/prayer-calculations.js';
+import { calcPrayers, distanceToKaabaKm, qiblaB } from './src/prayer-calculations.js';
 import { DATA_VERSION, STORAGE_KEYS, storageGet, storageRemove, storageSet } from './src/storage.js';
 import { createTaskModalModule } from './src/task-modal.js';
 import { createTasbihModule } from './src/tasbih.js';
@@ -334,31 +334,42 @@ function renderPrayerUI(p){
 }
 
 // ── QIBLA ──
+const GEO_OPTS = { enableHighAccuracy: false, maximumAge: 300000, timeout: 25000 };
+
 function calcQibla(){
-  document.querySelector('.qi-btn').textContent='📍 Определяем…';
+  const btn = document.getElementById('qibla-calc-btn');
+  if (btn) btn.textContent = '📍 Определяем…';
   if(!navigator.geolocation){
     document.getElementById('qibla-desc').textContent='Геолокация недоступна в браузере';
-    document.querySelector('.qi-btn').textContent='📍 Определить Киблу';return;
+    if (btn) btn.textContent='📍 Определить Киблу';
+    return;
   }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const{latitude:lat,longitude:lng}=pos.coords;
-    const b=qiblaB(lat,lng);
-    const dirs=['С','СВ','В','ЮВ','Ю','ЮЗ','З','СЗ'];
-    const dirLabel=dirs[Math.round(b/45)%8];
-    const R=6371,φ1=lat*DEG,φ2=KAABA.lat*DEG,Δφ=(KAABA.lat-lat)*DEG,Δλ=(KAABA.lng-lng)*DEG;
-    const a=Math.sin(Δφ/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
-    const dist=Math.round(R*2*Math.asin(Math.sqrt(a)));
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      try {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const b = qiblaB(lat, lng);
+        const dirs = ['С','СВ','В','ЮВ','Ю','ЮЗ','З','СЗ'];
+        const dirLabel = dirs[Math.round(b / 45) % 8];
+        const dist = distanceToKaabaKm(lat, lng);
 
-    document.getElementById('qibla-needle').style.transform=`rotate(${b}deg)`;
-    document.getElementById('qibla-deg').textContent=b.toFixed(1)+'°';
-    document.getElementById('qibla-dir').textContent=`Направление: ${dirLabel} от севера`;
-    document.getElementById('qibla-desc').textContent=`Зелёная стрелка указывает на Каабу. Повернитесь лицом в это направление.`;
-    document.getElementById('qibla-dist').textContent=dist.toLocaleString();
-    document.querySelector('.qi-btn').textContent='🔄 Обновить';
-  },()=>{
-    document.getElementById('qibla-desc').textContent='Не удалось получить геолокацию. Разрешите доступ в настройках браузера.';
-    document.querySelector('.qi-btn').textContent='📍 Попробовать снова';
-  });
+        document.getElementById('qibla-needle').style.transform=`rotate(${b}deg)`;
+        document.getElementById('qibla-deg').textContent=b.toFixed(1)+'°';
+        document.getElementById('qibla-dir').textContent=`Направление: ${dirLabel} от севера`;
+        document.getElementById('qibla-desc').textContent=`Зелёная стрелка указывает на Каабу. Повернитесь лицом в это направление.`;
+        document.getElementById('qibla-dist').textContent=dist.toLocaleString();
+        if (btn) btn.textContent='🔄 Обновить';
+      } catch (e) {
+        document.getElementById('qibla-desc').textContent='Ошибка расчёта. Попробуйте ещё раз.';
+        if (btn) btn.textContent='📍 Попробовать снова';
+      }
+    },
+    ()=>{
+      document.getElementById('qibla-desc').textContent='Не удалось получить геолокацию. Разрешите доступ в настройках браузера.';
+      if (btn) btn.textContent='📍 Попробовать снова';
+    },
+    GEO_OPTS
+  );
 }
 
 // ═══════════════════════════════════════════════════
@@ -552,6 +563,8 @@ const fState={freq:'',type:'',purpose:'',prio:''};
 const debouncedRenderCatalog = debounce(()=>renderCatalog(), 200);
 let lastActionAt = 0;
 let lastActionKey = '';
+/** Ignores double-taps on the same task (Today / Streaks). */
+const toggleTaskCooldownMs = new Map();
 
 function renderCatalogFilters(){
   // Freq chips
@@ -1150,6 +1163,16 @@ function bindStaticEvents(){
     const value = actionEl.dataset.value;
     if (actionEl.closest('.tc-actions')) event.stopPropagation();
 
+    if (action === 'toggle-task' && id) {
+      const nid = Number(id);
+      const now = Date.now();
+      const prev = toggleTaskCooldownMs.get(nid) ?? 0;
+      if (now - prev < 750) return;
+      toggleTaskCooldownMs.set(nid, now);
+      toggle(nid);
+      return;
+    }
+
     const actionKey = `${action}:${id ?? ''}`;
     const ts = Date.now();
     if (ts - lastActionAt < 320 && actionKey === lastActionKey) return;
@@ -1158,7 +1181,6 @@ function bindStaticEvents(){
 
     if (action === 'today-show-all') { todayShowAll = true; renderToday(); return; }
     if (action === 'today-show-less') { todayShowAll = false; renderToday(); return; }
-    if (action === 'toggle-task' && id) { toggle(Number(id)); return; }
     if (action === 'edit-task' && id) { editTask(Number(id)); return; }
     if (action === 'delete-task' && id) { deleteTask(Number(id)); return; }
     if (action === 'set-filter' && key != null) { setFilter(key, value ?? ''); return; }

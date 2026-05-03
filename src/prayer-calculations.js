@@ -84,3 +84,14 @@ export function qiblaB(lat, lng) {
   const x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
   return (Math.atan2(y, x) / DEG + 360) % 360;
 }
+
+/** Great-circle distance to Kaaba in km (for UI). */
+export function distanceToKaabaKm(lat, lng) {
+  const R = 6371;
+  const φ1 = lat * DEG;
+  const φ2 = KAABA.lat * DEG;
+  const Δφ = (KAABA.lat - lat) * DEG;
+  const Δλ = (KAABA.lng - lng) * DEG;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return Math.round(R * 2 * Math.asin(Math.sqrt(a)));
+}

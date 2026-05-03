@@ -249,9 +249,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .ins-k{font-size:11px;color:var(--text3)}
 .ins-v{font-size:20px;font-weight:700;color:var(--accent-d);line-height:1.2;margin-top:4px}
 .ins-sub{margin-top:8px;font-size:12px;color:var(--text3)}
+.cal-wrap{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 12px 12px;box-shadow:var(--sh-sm)}
 .cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.cal-meta{font-size:12px;color:var(--text3)}
-.cal-legend{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text3);margin-bottom:10px}
+.cal-head strong{font-size:15px;font-weight:600;color:var(--text)}
+.cal-meta{font-size:12px;color:var(--text3);text-align:right}
+.cal-legend{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--text3);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .cal-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .cal-dot.done{background:var(--accent-l);border:1px solid var(--g200)}
 .cal-dot.today{background:var(--surface);border:2px solid var(--accent)}
@@ -259,7 +261,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .cal-dow-row{margin-bottom:2px}
 .cal-dow{font-size:10px;color:var(--text4);text-align:center;text-transform:uppercase;font-weight:600}
 .cal-days{margin-top:2px}
-.cal-day{height:34px;border-radius:9px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--surface);font-weight:500}
+.cal-day{aspect-ratio:1;min-height:36px;max-height:44px;border-radius:9px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--n50);font-weight:500}
+.cal-day:not(.empty):not(.done){background:var(--surface)}
 .cal-day.empty{visibility:hidden}
 .cal-day.done{background:var(--accent-l);border-color:var(--g200);color:var(--accent-d);font-weight:700}
 .cal-day.today{box-shadow:0 0 0 2px var(--accent)}
@@ -436,8 +439,10 @@ textarea.fi{resize:vertical;min-height:70px;line-height:1.5}
   .page{padding:16px 14px calc(90px + env(safe-area-inset-bottom,0px))}
   #app-body{overflow-x:clip}
   .search-box input,.fi,.pg-inp,.auth-field input{font-size:16px}
+  .cal-wrap{padding:12px 10px 10px}
   .cal-head{align-items:flex-start;flex-direction:column}
-  .cal-meta{font-size:11px}
-  .cal-grid{gap:4px}
-  .cal-day{height:32px;font-size:11px}
+  .cal-meta{text-align:left;font-size:11px}
+  .cal-grid{gap:3px}
+  .cal-dow{font-size:9px}
+  .cal-day{min-height:32px;max-height:40px;font-size:11px}
 }
