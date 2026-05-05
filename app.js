@@ -61,31 +61,12 @@ async function authRefresh(refresh_token){
   return sbAuth('token?grant_type=refresh_token', { refresh_token });
 }
 
-/** JWT `exp` in ms; 0 if missing/invalid */
-function getAccessTokenExpMs(token){
-  if(!token || typeof token !== 'string') return 0;
-  try{
-    const p = token.split('.');
-    if(p.length < 2) return 0;
-    let b64 = p[1].replace(/-/g, '+').replace(/_/g, '/');
-    while(b64.length % 4) b64 += '=';
-    const { exp } = JSON.parse(atob(b64));
-    return exp ? exp * 1000 : 0;
-  }catch{ return 0; }
-}
-
-function accessTokenStillGood(token, skewMs = 60000){
-  const expMs = getAccessTokenExpMs(token);
-  return expMs > Date.now() + skewMs;
-}
-
 function saveSession(data){
-  const prev = storageGet(STORAGE_KEYS.session, null) || {};
   const session = {
     access_token:  data.access_token,
-    refresh_token: data.refresh_token || prev.refresh_token,
-    user_id:       data.user?.id || data.id || prev.user_id,
-    email:         data.user?.email || data.email || prev.email,
+    refresh_token: data.refresh_token,
+    user_id:       data.user?.id || data.id,
+    email:         data.user?.email || data.email,
     expires_at:    Date.now() + (data.expires_in || 3600) * 1000
   };
   storageSet(STORAGE_KEYS.session, session);
@@ -1242,71 +1223,32 @@ function bindStaticEvents(){
 }
 
 // ── Init ───────────────────────────────────────────
-function bindVisibilityTokenRefresh(){
-  document.addEventListener('visibilitychange', async ()=>{
-    if(document.visibilityState !== 'visible' || !currentUser?.refresh_token) return;
-    if(accessTokenStillGood(currentUser.access_token, 180000)) return;
-    try{
-      const data = await authRefresh(currentUser.refresh_token);
-      if(data?.access_token) saveSession(data);
-    }catch(_){ /* offline */ }
-  });
-}
-
 (async()=>{
   bindStaticEvents();
-  bindVisibilityTokenRefresh();
-
+  // Try restore session from localStorage
   const savedObj = storageGet(STORAGE_KEYS.session, null);
-  if(!savedObj || (!savedObj.access_token && !savedObj.refresh_token)){
-    showAuthScreen();
-    return;
-  }
-
-  let restored = false;
-  try{
-    const session = savedObj;
-    const storedExpiryOk = typeof session.expires_at === 'number' && session.expires_at > Date.now() + 60000;
-    const jwtOk = session.access_token && accessTokenStillGood(session.access_token, 60000);
-
-    if(session.access_token && (storedExpiryOk || jwtOk)){
-      const expMs = getAccessTokenExpMs(session.access_token);
-      if(expMs > Date.now() + 60000){
-        session.expires_at = expMs;
-        storageSet(STORAGE_KEYS.session, session);
+  if(savedObj){
+    try {
+      const session = savedObj;
+      // Check if token still valid (with 60s buffer)
+      if(session.expires_at > Date.now() + 60000){
+        currentUser = session;
+        await onSignedIn();
+        return;
       }
-      currentUser = session;
-      restored = true;
-    }else if(session.refresh_token){
-      const data = await authRefresh(session.refresh_token);
-      if(data?.access_token){
-        saveSession(data);
-        restored = true;
+      // Try refresh
+      if(session.refresh_token){
+        const data = await authRefresh(session.refresh_token);
+        if(data.access_token){
+          saveSession(data);
+          await onSignedIn();
+          return;
+        }
       }
-    }
-  }catch(e){
-    console.warn('[auth] restore', e);
+    } catch(e){}
   }
-
-  if(!restored){
-    showAuthScreen();
-    return;
-  }
-
-  try{
-    await onSignedIn();
-  }catch(e){
-    console.error('[auth] onSignedIn', e);
-    showApp();
-    try{
-      buildPurposeGrid();
-      loadDefaultPrayers();
-      renderAll();
-      scheduleNotifs();
-    }catch(e2){
-      console.error('[auth] fallback render', e2);
-    }
-  }
+  // No valid session — show auth
+  showAuthScreen();
 })();
 
 setInterval(()=>{if(curPage==='today')renderToday()},60000);
