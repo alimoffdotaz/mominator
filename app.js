@@ -34,17 +34,24 @@ function getSupa(){
   return supaClient;
 }
 
-async function supaSyncFromCurrentUser(){
+function withTimeout(promise, timeoutMs, label){
+  return Promise.race([
+    promise,
+    new Promise((_, reject)=>setTimeout(()=>reject(new Error(`${label} timeout`)), timeoutMs))
+  ]);
+}
+
+async function supaSyncFromCurrentUser(timeoutMs = 3000){
   try{
     const s = getSupa();
     if(!currentUser?.access_token){
-      await s.auth.signOut({ scope: 'local' });
+      await withTimeout(s.auth.signOut({ scope: 'local' }), timeoutMs, 'supa signOut');
       return;
     }
-    await s.auth.setSession({
+    await withTimeout(s.auth.setSession({
       access_token: currentUser.access_token,
       refresh_token: currentUser.refresh_token || '',
-    });
+    }), timeoutMs, 'supa setSession');
   }catch(e){
     console.warn('[auth] supabase sync', e);
   }
@@ -1411,7 +1418,8 @@ function bindVisibilityTokenRefresh(){
     return;
   }
 
-  await supaSyncFromCurrentUser();
+  // Do not block app startup on Supabase JS internals.
+  void supaSyncFromCurrentUser();
 
   try{
     await onSignedIn();
