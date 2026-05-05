@@ -425,9 +425,6 @@ textarea.fi{resize:vertical;min-height:70px;line-height:1.5}
 .auth-btn:hover{background:var(--accent-d)}
 .auth-btn:active{transform:scale(.98)}
 .auth-btn:disabled{opacity:.6;cursor:not-allowed}
-.auth-btn-passkey{background:var(--surface);color:var(--accent-d);border:1.5px solid var(--accent);box-shadow:none;margin-top:0}
-.auth-btn-passkey:hover{background:var(--accent-m)}
-.auth-hint-passkey{font-size:11px;color:var(--text4);line-height:1.45;margin-top:10px;text-align:center;margin-bottom:0}
 .auth-error{background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);border-radius:9px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;display:none;line-height:1.5}
 .auth-error.show{display:block}
 .auth-success{background:var(--accent-m);border:1px solid var(--g200);border-radius:9px;padding:10px 14px;font-size:13px;color:var(--accent-d);margin-bottom:14px;display:none;line-height:1.5}

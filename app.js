@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import { ANCHOR_LBL, FORMS, FREQS, PRIO_LABEL, PRIO_TAG, PR_NAMES, PURPOSES_UNIQUE, TYPES } from './src/constants.js';
 import { addM, ds, hijri, nowM, t2m } from './src/date-time.js';
 import { debounce } from './src/debounce.js';
@@ -17,45 +16,6 @@ import { createTasbihModule } from './src/tasbih.js';
 // ═══════════════════════════════════════════════════
 const SB_URL = 'https://vagivwibdvpqnvxrhhmw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhZ2l2d2liZHZwcW52eHJoaG13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyOTEzNzQsImV4cCI6MjA5Mjg2NzM3NH0.HFUN0JvSP4zHvNZi8B7dG1__7Fd1Usg9l_D38zZrA1w';
-
-/** Supabase client: passkeys + setSession mirror our mz_session storage */
-let supaClient = null;
-function getSupa(){
-  if(!supaClient){
-    supaClient = createClient(SB_URL, SB_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-        experimental: { passkey: true },
-      },
-    });
-  }
-  return supaClient;
-}
-
-async function supaSyncFromCurrentUser(){
-  try{
-    const s = getSupa();
-    if(!currentUser?.access_token){
-      await s.auth.signOut({ scope: 'local' });
-      return;
-    }
-    await s.auth.setSession({
-      access_token: currentUser.access_token,
-      refresh_token: currentUser.refresh_token || '',
-    });
-  }catch(e){
-    console.warn('[auth] supabase sync', e);
-  }
-}
-
-function isPasskeySupported(){
-  return typeof window !== 'undefined' &&
-    window.PublicKeyCredential &&
-    typeof navigator.credentials?.create === 'function' &&
-    typeof navigator.credentials?.get === 'function';
-}
 
 // ═══════════════════════════════════════════════════
 // SUPABASE AUTH
@@ -85,7 +45,6 @@ async function authSignOut(){
     method: 'POST',
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + currentUser.access_token }
   });
-  await getSupa().auth.signOut({ scope: 'local' }).catch(()=>{});
   currentUser = null;
   storageRemove(STORAGE_KEYS.session);
   showAuthScreen();
@@ -131,7 +90,6 @@ function saveSession(data){
   };
   storageSet(STORAGE_KEYS.session, session);
   currentUser = session;
-  void supaSyncFromCurrentUser();
   // Update sbGet/sbSet to use real token
   updateSbHeaders();
 }
@@ -1091,72 +1049,6 @@ const switchAuthTab = authUi.switchAuthTab;
 const authSubmit = authUi.authSubmit;
 const authForgotPassword = authUi.authForgotPassword;
 
-function setAuthScreenPasskeyError(msg){
-  const el = document.getElementById('auth-error');
-  const ok = document.getElementById('auth-success');
-  if(msg && el){
-    el.textContent = msg;
-    el.classList.add('show');
-    ok?.classList.remove('show');
-  }else if(el) el.classList.remove('show');
-}
-
-async function signInWithPasskeyFlow(){
-  if(!isPasskeySupported()){
-    setAuthScreenPasskeyError('Этот браузер не поддерживает passkey (WebAuthn).');
-    return;
-  }
-  const btn = document.getElementById('auth-passkey-btn');
-  if(btn) btn.disabled = true;
-  setAuthScreenPasskeyError('');
-  try{
-    const { data, error } = await getSupa().auth.signInWithPasskey();
-    if(error){
-      setAuthScreenPasskeyError(error.message || String(error));
-      return;
-    }
-    const session = data?.session;
-    if(!session?.access_token){
-      setAuthScreenPasskeyError('Не удалось войти по passkey. В Supabase Dashboard включите Passkeys и укажите Relying Party ID (например alimoffdotaz.github.io).');
-      return;
-    }
-    saveSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-      expires_in: session.expires_in,
-      user: session.user,
-    });
-    await onSignedIn();
-  }catch(e){
-    setAuthScreenPasskeyError(String(e?.message || e));
-  }finally{
-    if(btn) btn.disabled = false;
-  }
-}
-
-async function registerPasskeyFlow(){
-  if(!isPasskeySupported()){
-    alert('Этот браузер не поддерживает passkey.');
-    return;
-  }
-  if(!currentUser?.access_token){
-    alert('Сначала войдите в аккаунт.');
-    return;
-  }
-  const btn = document.getElementById('add-passkey-btn');
-  if(btn) btn.disabled = true;
-  try{
-    await supaSyncFromCurrentUser();
-    const { error } = await getSupa().auth.registerPasskey();
-    if(error) alert(error.message || String(error));
-    else alert('Passkey добавлен. Теперь можно входить без пароля.');
-  }catch(e){
-    alert(String(e?.message || e));
-  }finally{
-    if(btn) btn.disabled = false;
-  }
-}
-
 function showAuthScreen(){
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('main-nav').style.display    = 'none';
@@ -1232,18 +1124,9 @@ function hideSyncBanner(wrap, msg, color){
 }
 
 function bindStaticEvents(){
-  document.getElementById('tab-signin')?.addEventListener('click',()=>{
-    switchAuthTab('signin');
-    const pb = document.getElementById('auth-passkey-block');
-    if(pb) pb.style.display = '';
-  });
-  document.getElementById('tab-signup')?.addEventListener('click',()=>{
-    switchAuthTab('signup');
-    const pb = document.getElementById('auth-passkey-block');
-    if(pb) pb.style.display = 'none';
-  });
+  document.getElementById('tab-signin')?.addEventListener('click',()=>switchAuthTab('signin'));
+  document.getElementById('tab-signup')?.addEventListener('click',()=>switchAuthTab('signup'));
   document.getElementById('auth-submit-btn')?.addEventListener('click',authSubmit);
-  document.getElementById('auth-passkey-btn')?.addEventListener('click',()=>{ void signInWithPasskeyFlow(); });
   document.getElementById('auth-forgot-link')?.addEventListener('click',authForgotPassword);
   document.getElementById('auth-password')?.addEventListener('keydown',(event)=>{ if(event.key==='Enter') authSubmit(); });
 
@@ -1277,7 +1160,6 @@ function bindStaticEvents(){
   document.getElementById('toggle-night')?.addEventListener('click',()=>{ document.getElementById('toggle-night')?.classList.toggle('on'); saveSettings(); });
   document.getElementById('reset-today-btn')?.addEventListener('click',resetToday);
   document.getElementById('export-data-btn')?.addEventListener('click',exportData);
-  document.getElementById('add-passkey-btn')?.addEventListener('click',()=>{ void registerPasskeyFlow(); });
 
   document.getElementById('modal-close-btn')?.addEventListener('click',closeModal);
   document.getElementById('modal-cancel-btn')?.addEventListener('click',closeModal);
@@ -1410,8 +1292,6 @@ function bindVisibilityTokenRefresh(){
     showAuthScreen();
     return;
   }
-
-  await supaSyncFromCurrentUser();
 
   try{
     await onSignedIn();
